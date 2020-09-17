@@ -89,15 +89,9 @@ static const char ascii[] =
 
 #define ASCII_SPACE_SYMBOL 0x00
 
-#if (('1234' >> 24) == '1')
-    #ifndef LITTLE_ENDIAN
-    #define LITTLE_ENDIAN
-    #endif
-#elif (('4321' >> 24) == '1')
-    #ifndef BIG_ENDIAN
-    #define BIG_ENDIAN
-    #endif
-#else
+#define LITTLE_ENDIAN
+
+#if !defined(BIG_ENDIAN) && !defined(LITTLE_ENDIAN)
     #error "Unable to determine endian. Set it manually"
 #endif
 
@@ -120,13 +114,12 @@ union tCmdSeq
 
 union tDataSeq
 {
-    struct __attribute__((packed))
+    struct //__attribute__((packed))
     {
 #if defined LITTLE_ENDIAN
         uint8_t padding : 7;
-        uint16_t data2 : 16;
-        uint16_t data1 : 16;
-        uint16_t data0 : 16;
+        uint64_t data1 : 64;
+        uint64_t data0 : 64;
         uint8_t addr : 6;
         uint8_t type : 3;
 #elif defined BIG_ENDIAN
@@ -138,7 +131,7 @@ union tDataSeq
         uint8_t padding : 7;
 #endif
     };
-    uint8_t arr[8];
+    uint8_t arr[18];
 };
 
 
@@ -229,12 +222,13 @@ void HT1621::wrBytes(uint8_t *ptr, uint8_t size)
 void HT1621::wrBuffer()
 {
     tDataSeq dataSeq = {};
-    dataSeq.type = MODE_DATA;
-    dataSeq.addr = 0;
+//    dataSeq.type = MODE_DATA;
+//    dataSeq.addr = 0;
+    dataSeq.arr[0] = MODE_DATA | (0 << ADD_SHIFT);
     // unable to use memcpy function with bit fields. So fill data manually
     dataSeq.data0 = (buffer[5] << 8) + buffer[4];
     dataSeq.data1 = (buffer[3] << 8) + buffer[2];
-    dataSeq.data2 = (buffer[1] << 8) + buffer[0];
+//    dataSeq.data2 = (buffer[1] << 8) + buffer[0];
 
     wrBytes(dataSeq.arr, sizeof(tDataSeq));
 }

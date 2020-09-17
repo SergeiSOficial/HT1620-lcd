@@ -139,6 +139,8 @@ private:
     const bool LOW = 0;
     const bool HIGH = 1;
 
+    const uint8_t ADD_SHIFT = 0;
+
     pPinSet *pCsPin = nullptr; // SPI CS pin
     pPinSet *pSckPin = nullptr; // for display it is WR pin
     pPinSet *pMosiPin = nullptr; // for display it is Data pin
