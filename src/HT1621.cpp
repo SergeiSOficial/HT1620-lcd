@@ -38,17 +38,23 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /**
  * @brief CALCULATION DEFINES BLOCK
  */
-constexpr int MAX_NUM = 999999;
-constexpr int MIN_NUM = -99999;
+constexpr int MAX_NUM = 999999999;
+constexpr int MIN_NUM = -999999999;
 
-constexpr size_t PRECISION_MAX_POSITIVE = 3; // TODO: find better names
-constexpr size_t PRECISION_MAX_NEGATIVE = 2;
+constexpr size_t PRECISION_MAX_POSITIVE = 5; // TODO: find better names
+constexpr size_t PRECISION_MAX_NEGATIVE = 5;
 constexpr size_t PRECISION_MIN = 1;
 
 constexpr size_t BITS_PER_BYTE = 8;
 
+#ifndef MIN
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#endif //MIN
+
+#ifndef SET_BIT
+#include "main.h"
+#endif //SET_BIT
 
 /**
  * @brief DISPLAY HARDWARE DEFINES BLOCK
@@ -66,6 +72,9 @@ constexpr size_t BITS_PER_BYTE = 8;
 
 #define MODE_CMD 0x08
 #define MODE_DATA 0x05
+
+#define ADR0_SHIFT 0
+#define ADR1_SHIFT 7
 
 #define BAT1_SEG (1 << 5)
 #define BAT2_SEG (1 << 1)
@@ -85,6 +94,18 @@ constexpr size_t BITS_PER_BYTE = 8;
 #define P4_POS 10
 #define P5_SEG (1 << 0)
 #define P5_POS 11
+
+#define NUM1FGE_SEG (7 << 5) //0b11100000
+#define NUM1FGE_POS 2
+#define NUM1ABC_SEG (0x7 << 0) //0b00000111
+#define NUM1D_SEG (0x08 << 0)  //0b00001000
+#define NUM1ABCD_POS 3
+
+#define MINUS_SEG (1 << 0)
+#define MINUS_POS 4
+
+#define ALL_CLEAR_SEG (0xfe << 0) //0b11111110
+#define ALL_CLEAR_POS 1
 
 #define DOT_SEG 0x80
 
@@ -328,7 +349,9 @@ void HT1621::wrBytes(uint8_t *ptr, uint8_t size)
 
 void HT1621::wrBuffer()
 {
-    buffer[0] |= MODE_DATA | (0 << ADD_SHIFT);
+    buffer[0] = MODE_DATA | (0 << ADR0_SHIFT);
+    buffer[1] |= (0 << ADR1_SHIFT);
+
     wrBytes(buffer, sizeof(buffer));
 }
 
@@ -368,26 +391,33 @@ void HT1621::batteryBufferClear()
 
 void HT1621::dotsBufferClear()
 {
-    CLEAR_BIT(buffer[P1_POS], P1_SEG);
-    CLEAR_BIT(buffer[P2_POS], P2_SEG);
-    CLEAR_BIT(buffer[P3_POS], P3_SEG);
-    CLEAR_BIT(buffer[P4_POS], P4_SEG);
-    CLEAR_BIT(buffer[P5_POS], P5_SEG);
+    for (size_t i = 0; i < PRECISION_MAX_POSITIVE; i++)
+    {
+        CLEAR_BIT(buffer[P1_POS + i], P1_SEG);
+    }
 }
 
 void HT1621::lettersBufferClear()
 {
     for (size_t i = 0; i < DISPLAY_SIZE; i++)
     {
-        buffer[i] &= BATTERY_SEG | DOT_SEG;
+        CLEAR_BIT(buffer[NUM1FGE_POS + i], NUM1FGE_SEG);
+        CLEAR_BIT(buffer[NUM1ABCD_POS + i], NUM1ABC_SEG);
+        CLEAR_BIT(buffer[NUM1ABCD_POS + i], NUM1D_SEG);
     }
 }
 
+void HT1621::AllClear()
+{
+    CLEAR_BIT(buffer[ALL_CLEAR_POS], ALL_CLEAR_SEG);
+    for (size_t i = 0; i < DATA_SIZE; i++)
+    {
+        buffer[i + SYS_SIZE] = 0;
+    }
+}
 void HT1621::clear()
 {
-    batteryBufferClear();
-    dotsBufferClear();
-    lettersBufferClear();
+    AllClear();
 
     wrBuffer();
 }
@@ -399,12 +429,19 @@ void HT1621::bufferToAscii(const char *in, uint8_t *out)
         char c = in[i];
         // Handle situation when char is out of displayable ascii table part.
         // Show space instead
-        if (c < ' ')
-            out[i] |= ASCII_SPACE_SYMBOL;
-        else if (c - ' ' > (int)sizeof(ascii))
-            out[i] |= ASCII_SPACE_SYMBOL;
+        if ((c < ' ') || (c - ' ' > (int)sizeof(ascii)))
+        {
+            CLEAR_BIT(out[NUM1FGE_POS + i], NUM1FGE_SEG);
+            CLEAR_BIT(out[NUM1ABCD_POS + i], NUM1ABC_SEG);
+            CLEAR_BIT(out[NUM1ABCD_POS + i], NUM1D_SEG);
+        }
         else
-            out[i] |= ascii[c - ' '];
+        {
+            //02345678 conversion to 67805234
+            SET_BIT(out[NUM1FGE_POS + i], NUM1FGE_SEG & (ascii[c - ' ']) << 5);  // shift 5 for changing data format from library to our display
+            SET_BIT(out[NUM1ABCD_POS + i], NUM1ABC_SEG & (ascii[c - ' ']) >> 4); // shift 3 for changing data format from library to our display
+            SET_BIT(out[NUM1ABCD_POS + i], NUM1D_SEG & (ascii[c - ' ']));        // 4 bit not shifted in our display
+        }
     }
 }
 
@@ -441,7 +478,15 @@ void HT1621::print(float num, uint8_t precision)
     else if (num < 0 && precision > PRECISION_MAX_NEGATIVE)
         precision = PRECISION_MAX_NEGATIVE;
 
-    int32_t integerated = (int32_t)(num * pow(10, precision));
+    if (num < MIN_NUM / 10)
+    {
+        num = num * (-1);
+        SET_BIT(buffer[MINUS_POS], MINUS_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[MINUS_POS], MINUS_SEG);
+    }
 
     if (integerated > MAX_NUM)
         integerated = MAX_NUM;
@@ -459,7 +504,11 @@ void HT1621::print(int32_t multiplied_float, uint32_t multiplier)
 {
     uint8_t precision = 0;
 
-    if (multiplier == 1000)
+    if (multiplier == 100000)
+        precision = 5;
+    else if (multiplier == 10000)
+        precision = 4;
+    else if (multiplier == 1000)
         precision = 3;
     else if (multiplier == 100)
         precision = 2;
@@ -485,7 +534,5 @@ void HT1621::decimalSeparator(uint8_t dpPosition)
         // selected dot position not supported by display hardware
         return;
 
-    // the first three eights bits in the buffer are for the battery signs
-    // the last three are for the decimal point
-    buffer[DISPLAY_SIZE - dpPosition] |= DOT_SEG;
+    SET_BIT(buffer[P5_POS - dpPosition + 1], P1_SEG);
 }

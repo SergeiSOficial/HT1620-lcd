@@ -35,11 +35,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <cstdint>
 #include <cstddef>
 
-
 class HT1621
 {
 public:
-
     using pPinSet = void(bool);
     using pInterface = void(uint8_t *, uint8_t);
 
@@ -131,24 +129,24 @@ public:
     void clear();
 
 private:
-
-    static const size_t DISPLAY_SIZE = 18; // 16 * 8  = 128 symbols on display plus 2 byte for address
-    uint8_t buffer[DISPLAY_SIZE] = {}; // buffer where display data will be stored
+    static const size_t DISPLAY_SIZE = 9;                           // 16 * 8  = 128 symbols on display plus 2 byte for address
+    static const size_t SYS_SIZE = 2;                               // 2 byte for address and commands
+    static const size_t DATA_SIZE = 16;                             // 16 * 8  = 128 symbols on display
+    static const size_t DISPLAY_BUFFER_SIZE = DATA_SIZE + SYS_SIZE; //  plus 2 byte for address
+    uint8_t buffer[DISPLAY_BUFFER_SIZE] = {};                       // buffer where display data will be stored
 
     // defines to set display pin to low or high level
     const bool LOW = 0;
     const bool HIGH = 1;
 
-    const uint8_t ADD_SHIFT = 0;
-
-    pPinSet *pCsPin = nullptr; // SPI CS pin
-    pPinSet *pSckPin = nullptr; // for display it is WR pin
-    pPinSet *pMosiPin = nullptr; // for display it is Data pin
-    pPinSet *pBacklightPin = nullptr; // display backlight pin
+    pPinSet *pCsPin = nullptr;           // SPI CS pin
+    pPinSet *pSckPin = nullptr;          // for display it is WR pin
+    pPinSet *pMosiPin = nullptr;         // for display it is Data pin
+    pPinSet *pBacklightPin = nullptr;    // display backlight pin
     pInterface *pSpiInterface = nullptr; // ptr to SPI_tx implementation
 
     // the most low-level function. Sends array of bytes into display
-    void wrBytes(uint8_t* ptr, uint8_t size);
+    void wrBytes(uint8_t *ptr, uint8_t size);
     // write buffer to the display
     void wrBuffer();
     // write command sequence to display
@@ -163,6 +161,8 @@ private:
     void dotsBufferClear();
     // remove all symbols from display buffer except battery and dots
     void lettersBufferClear();
+    //Clear all segments
+    void AllClear();
     // coverts buffer symbols to format, which can be displayed by lcd
     void bufferToAscii(const char *in, uint8_t *out);
 };
