@@ -132,8 +132,8 @@ public:
 
 private:
 
-    static const size_t DISPLAY_SIZE = 6; // symbols on display
-    char buffer[DISPLAY_SIZE] = {}; // buffer where display data will be stored
+    static const size_t DISPLAY_SIZE = 18; // 16 * 8  = 128 symbols on display plus 2 byte for address
+    uint8_t buffer[DISPLAY_SIZE] = {}; // buffer where display data will be stored
 
     // defines to set display pin to low or high level
     const bool LOW = 0;
@@ -164,7 +164,7 @@ private:
     // remove all symbols from display buffer except battery and dots
     void lettersBufferClear();
     // coverts buffer symbols to format, which can be displayed by lcd
-    void bufferToAscii(const char *in, char *out);
+    void bufferToAscii(const char *in, uint8_t *out);
 };
 
 #endif
