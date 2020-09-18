@@ -104,6 +104,18 @@ constexpr size_t BITS_PER_BYTE = 8;
 #define MINUS_SEG (1 << 0)
 #define MINUS_POS 4
 
+#define MIN_RU_SEG (1 << 0)
+#define MIN_RU_POS 5
+
+#define MAX_RU_SEG (1 << 4)
+#define MAX_RU_POS 2
+
+#define MIN_EN_SEG (1 << 0)
+#define MIN_EN_POS 6
+
+#define MAX_EN_SEG (1 << 0)
+#define MAX_EN_POS 3
+
 #define ALL_CLEAR_SEG (0xfe << 0) //0b11111110
 #define ALL_CLEAR_POS 1
 
@@ -488,6 +500,8 @@ void HT1621::print(float num, uint8_t precision)
         CLEAR_BIT(buffer[MINUS_POS], MINUS_SEG);
     }
 
+    int32_t integerated = (int32_t)(num * pow(10, precision));
+
     if (integerated > MAX_NUM)
         integerated = MAX_NUM;
     if (integerated < MIN_NUM)
@@ -535,4 +549,24 @@ void HT1621::decimalSeparator(uint8_t dpPosition)
         return;
 
     SET_BIT(buffer[P5_POS - dpPosition + 1], P1_SEG);
+}
+
+void HT1621::DisplayMinMax(enum display_mode_t mode, enum min_max_t disp)
+{
+    if (mode == DISPLAY_MODE_RUSSIA)
+    {
+        switch (disp)
+        {
+        case DISPLAY_MIN:
+            SET_BIT(buffer[MIN_RU_POS], MIN_RU_SEG);
+            break;
+        case DISPLAY_MAX:
+            SET_BIT(buffer[MAX_RU_POS], MAX_RU_SEG);
+            break;
+        default:
+            CLEAR_BIT(buffer[MIN_RU_POS], MIN_RU_SEG);
+            CLEAR_BIT(buffer[MAX_RU_POS], MAX_RU_SEG);
+            break;
+        }
+    }
 }

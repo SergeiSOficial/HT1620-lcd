@@ -35,6 +35,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <cstdint>
 #include <cstddef>
 
+#include "WVT_Display.h"
+
 class HT1621
 {
 public:
@@ -127,6 +129,8 @@ public:
      * @brief Clears the display
      */
     void clear();
+
+    void DisplayMinMax(display_mode_t mode, min_max_t disp);
 
 private:
     static const size_t DISPLAY_SIZE = 9;                           // 16 * 8  = 128 symbols on display plus 2 byte for address
