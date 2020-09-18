@@ -362,6 +362,7 @@ private:
     pPinSet *pBacklightPin = nullptr;    // display backlight pin
     pInterface *pSpiInterface = nullptr; // ptr to SPI_tx implementation
 
+    inline void LCD_TOGGLE(bool EN, uint8_t POS1, uint8_t SEG1, uint8_t POS2, uint8_t SEG2);
     // the most low-level function. Sends array of bytes into display
     void wrBytes(uint8_t *ptr, uint8_t size);
     // write buffer to the display

@@ -53,9 +53,28 @@ constexpr size_t BITS_PER_BYTE = 8;
 #endif //MIN
 
 #ifndef SET_BIT
-#include "main.h"
+#define SET_BIT(REG, BIT) ((REG) |= (BIT))
 #endif //SET_BIT
 
+#ifndef CLEAR_BIT
+#define CLEAR_BIT(REG, BIT) ((REG) |= (BIT))
+#endif //CLEAR_BIT
+
+#define LCD_SWITCH(EN, POS, SEG) ((EN) ? (SET_BIT(buffer[POS], SEG)) : (CLEAR_BIT(buffer[POS], SEG)))
+//#define LCD_TOGGLE(EN, POS1, SEG1, POS2, SEG2) ((EN) ? ({SET_BIT(buffer[POS1], SEG1); CLEAR_BIT(buffer[POS2], SEG2); }) : ({SET_BIT(buffer[POS2], SEG2); CLEAR_BIT(buffer[POS1], SEG1); }))
+inline void HT1621::LCD_TOGGLE(bool EN, uint8_t POS1, uint8_t SEG1, uint8_t POS2, uint8_t SEG2)
+{
+    if (EN)
+    {
+        SET_BIT(buffer[POS1], SEG1);
+        CLEAR_BIT(buffer[POS2], SEG2);
+    }
+    else
+    {
+        SET_BIT(buffer[POS2], SEG2);
+        CLEAR_BIT(buffer[POS1], SEG1);
+    }
+}
 /**
  * @brief DISPLAY HARDWARE DEFINES BLOCK
  */
@@ -676,29 +695,11 @@ void HT1621::DispMinMax(bool enable, bool mode, bool min)
     {
         if (mode)
         {
-            if (min)
-            {
-                SET_BIT(buffer[MIN_RU_POS], MIN_RU_SEG);
-                CLEAR_BIT(buffer[MAX_RU_POS], MAX_RU_SEG);
-            }
-            else
-            {
-                SET_BIT(buffer[MAX_RU_POS], MAX_RU_SEG);
-                CLEAR_BIT(buffer[MIN_RU_POS], MIN_RU_SEG);
-            }
+            LCD_TOGGLE(min, MIN_RU_POS, MIN_RU_SEG, MAX_RU_POS, MAX_RU_SEG);
         }
         else
         {
-            if (min)
-            {
-                SET_BIT(buffer[MIN_EN_POS], MIN_EN_SEG);
-                CLEAR_BIT(buffer[MAX_EN_POS], MAX_EN_SEG);
-            }
-            else
-            {
-                SET_BIT(buffer[MAX_EN_POS], MAX_EN_SEG);
-                CLEAR_BIT(buffer[MIN_EN_POS], MIN_EN_SEG);
-            }
+            LCD_TOGGLE(min, MIN_EN_POS, MIN_EN_SEG, MAX_EN_POS, MAX_EN_SEG);
         }
     }
     else
@@ -714,14 +715,7 @@ void HT1621::DispBurst(bool enable, bool mode)
 {
     if (enable)
     {
-        if (mode)
-        {
-            SET_BIT(buffer[BURST_RU_POS], BURST_RU_SEG);
-        }
-        else
-        {
-            SET_BIT(buffer[BURST_EN_POS], BURST_EN_SEG);
-        }
+        LCD_SWITCH(mode, BURST_RU_POS, BURST_RU_SEG);
     }
     else
     {
@@ -734,14 +728,7 @@ void HT1621::DispLeak(bool enable, bool mode)
 {
     if (enable)
     {
-        if (mode)
-        {
-            SET_BIT(buffer[LEAK_RU_POS], LEAK_RU_SEG);
-        }
-        else
-        {
-            SET_BIT(buffer[LEAK_EN_POS], LEAK_EN_SEG);
-        }
+        LCD_SWITCH(mode, LEAK_RU_POS, LEAK_RU_SEG);
     }
     else
     {
@@ -754,14 +741,7 @@ void HT1621::DispRev(bool enable, bool mode)
 {
     if (enable)
     {
-        if (mode)
-        {
-            SET_BIT(buffer[REV_RU_POS], REV_RU_SEG);
-        }
-        else
-        {
-            SET_BIT(buffer[REV_EN_POS], REV_EN_SEG);
-        }
+        LCD_SWITCH(mode, REV_RU_POS, REV_RU_SEG);
     }
     else
     {
@@ -772,40 +752,19 @@ void HT1621::DispRev(bool enable, bool mode)
 
 void HT1621::DispFrost(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[FROST_POS], FROST_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[FROST_POS], FROST_SEG);
-    }
+    LCD_SWITCH(enable, FROST_POS, FROST_SEG);
 }
 
 void HT1621::DispQ(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[Q_POS], Q_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[Q_POS], Q_SEG);
-    }
+    LCD_SWITCH(enable, Q_POS, Q_SEG);
 }
 
 void HT1621::DispVer(bool enable, bool mode)
 {
     if (enable)
     {
-        if (mode)
-        {
-            SET_BIT(buffer[VER_RU_POS], VER_RU_SEG);
-        }
-        else
-        {
-            SET_BIT(buffer[VER_EN_POS], VER_EN_SEG);
-        }
+        LCD_SWITCH(mode, VER_RU_POS, VER_RU_SEG);
     }
     else
     {
@@ -818,14 +777,7 @@ void HT1621::DispSN(bool enable, bool mode)
 {
     if (enable)
     {
-        if (mode)
-        {
-            SET_BIT(buffer[SN_RU_POS], SN_RU_SEG);
-        }
-        else
-        {
-            SET_BIT(buffer[SN_EN_POS], SN_EN_SEG);
-        }
+        LCD_SWITCH(mode, SN_RU_POS, SN_RU_SEG);
     }
     else
     {
@@ -836,146 +788,62 @@ void HT1621::DispSN(bool enable, bool mode)
 
 void HT1621::DispWarn(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[WARN_POS], WARN_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[WARN_POS], WARN_SEG);
-    }
+    LCD_SWITCH(enable, WARN_POS, WARN_SEG);
 }
 
 void HT1621::DispMagn(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[MAGNET_POS], MAGNET_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[MAGNET_POS], MAGNET_SEG);
-    }
+    LCD_SWITCH(enable, MAGNET_POS, MAGNET_SEG);
 }
 
 void HT1621::DispLeft(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[LEFT_POS], LEFT_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[LEFT_POS], LEFT_SEG);
-    }
+    LCD_SWITCH(enable, LEFT_POS, LEFT_SEG);
 }
 
 void HT1621::DispRight(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[RIGHT_POS], RIGHT_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[RIGHT_POS], RIGHT_SEG);
-    }
+    LCD_SWITCH(enable, RIGHT_POS, RIGHT_SEG);
 }
 
 void HT1621::DispNoWater(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[NOWATER_POS], NOWATER_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[NOWATER_POS], NOWATER_SEG);
-    }
+    LCD_SWITCH(enable, NOWATER_POS, NOWATER_SEG);
 }
 
 void HT1621::DispCRC(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[CRC_POS], CRC_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[CRC_POS], CRC_SEG);
-    }
+    LCD_SWITCH(enable, CRC_POS, CRC_SEG);
 }
 
 void HT1621::DispDelta(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[DELTA_POS], DELTA_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[DELTA_POS], DELTA_SEG);
-    }
+    LCD_SWITCH(enable, DELTA_POS, DELTA_SEG);
 }
 
 void HT1621::DispT(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[T_POS], T_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[T_POS], T_SEG);
-    }
+    LCD_SWITCH(enable, T_POS, T_SEG);
 }
 
 void HT1621::Disp1(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[T1_POS], T1_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[T1_POS], T1_SEG);
-    }
+    LCD_SWITCH(enable, T1_POS, T1_SEG);
 }
 
 void HT1621::DispT2(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[T2_POS], T2_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[T2_POS], T2_SEG);
-    }
+    LCD_SWITCH(enable, T2_POS, T2_SEG);
 }
 
 void HT1621::DispNBFi(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[NBFI_POS], NBFI_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[NBFI_POS], NBFI_SEG);
-    }
+    LCD_SWITCH(enable, NBFI_POS, NBFI_SEG);
 }
 
 void HT1621::DispNBIoT(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[NBIOT_POS], NBIOT_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[NBIOT_POS], NBIOT_SEG);
-    }
+    LCD_SWITCH(enable, NBIOT_POS, NBIOT_SEG);
 }
 
 void HT1621::SignalLevel(uint8_t percents)
@@ -999,14 +867,7 @@ void HT1621::SignalLevel(uint8_t percents)
 
 void HT1621::DispDegreePoint(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[DEGREE_POS], DEGREE_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[DEGREE_POS], DEGREE_SEG);
-    }
+    LCD_SWITCH(enable, DEGREE_POS, DEGREE_SEG);
 }
 
 void HT1621::DispEnergyJ(bool enable, bool mode, bool perH)
@@ -1016,26 +877,12 @@ void HT1621::DispEnergyJ(bool enable, bool mode, bool perH)
         if (mode)
         {
             SET_BIT(buffer[GCAL_POS], GCAL_SEG);
-            if (perH)
-            {
-                SET_BIT(buffer[GCAL_H_POS], GCAL_H_SEG);
-            }
-            else
-            {
-                CLEAR_BIT(buffer[GCAL_H_POS], GCAL_H_SEG);
-            }
+            LCD_SWITCH(perH, GCAL_H_POS, GCAL_H_SEG);
         }
         else
         {
             SET_BIT(buffer[GJ_POS], GJ_SEG);
-            if (perH)
-            {
-                SET_BIT(buffer[GJ_H_POS], GJ_H_SEG);
-            }
-            else
-            {
-                CLEAR_BIT(buffer[GJ_H_POS], GJ_H_SEG);
-            }
+            LCD_SWITCH(perH, GJ_H_POS, GJ_H_SEG);
         }
     }
     else
@@ -1052,25 +899,8 @@ void HT1621::DispEnergyW(bool enable, bool M, bool perH)
     if (enable)
     {
         SET_BIT(buffer[W_POS], W_SEG);
-        if (M)
-        {
-            SET_BIT(buffer[MW_POS], MW_SEG);
-            CLEAR_BIT(buffer[KW_POS], KW_SEG);
-        }
-        else
-        {
-            SET_BIT(buffer[KW_POS], KW_SEG);
-            CLEAR_BIT(buffer[MW_POS], MW_SEG);
-        }
-
-        if (perH)
-        {
-            SET_BIT(buffer[WH_POS], WH_SEG);
-        }
-        else
-        {
-            CLEAR_BIT(buffer[WH_POS], WH_SEG);
-        }
+        LCD_TOGGLE(M, MW_POS, MW_SEG, KW_POS, KW_SEG);
+        LCD_SWITCH(perH, WH_POS, WH_SEG);
     }
     else
     {
@@ -1089,14 +919,7 @@ void HT1621::DispFlowM3(bool enable, bool mode, bool perH)
         if (perH)
         {
             SET_BIT(buffer[M3_H_POS], M3_H_SEG);
-            if (mode)
-            {
-                CLEAR_BIT(buffer[M3_H_EN_POS], M3_H_EN_SEG);
-            }
-            else
-            {
-                SET_BIT(buffer[M3_H_EN_POS], M3_H_EN_SEG);
-            }
+            LCD_SWITCH(perH, M3_H_EN_POS, M3_H_EN_SEG);
         }
         else
         {
@@ -1117,14 +940,7 @@ void HT1621::DispFlowGAL(bool enable, bool perH)
     if (enable)
     {
         SET_BIT(buffer[GAL_POS], GAL_SEG);
-        if (perH)
-        {
-            SET_BIT(buffer[GAL_PM_POS], GAL_PM_SEG);
-        }
-        else
-        {
-            CLEAR_BIT(buffer[GAL_PM_POS], GAL_PM_SEG);
-        }
+        LCD_SWITCH(perH, GAL_PM_POS, GAL_PM_SEG);
     }
     else
     {
@@ -1138,14 +954,7 @@ void HT1621::DispFlowFT(bool enable, bool perH)
     if (enable)
     {
         SET_BIT(buffer[FT3_POS], FT3_SEG);
-        if (perH)
-        {
-            SET_BIT(buffer[FT3_PM_POS], FT3_PM_SEG);
-        }
-        else
-        {
-            CLEAR_BIT(buffer[FT3_PM_POS], FT3_PM_SEG);
-        }
+        LCD_SWITCH(perH, FT3_PM_POS, FT3_PM_SEG);
     }
     else
     {
@@ -1156,14 +965,7 @@ void HT1621::DispFlowFT(bool enable, bool perH)
 
 void HT1621::DispMMBTU(bool enable)
 {
-    if (enable)
-    {
-        SET_BIT(buffer[MMBTU_POS], MMBTU_SEG);
-    }
-    else
-    {
-        CLEAR_BIT(buffer[MMBTU_POS], MMBTU_SEG);
-    }
+    LCD_SWITCH(enable, MMBTU_POS, MMBTU_SEG);
 }
 
 void HT1621::DispGal(bool enable, bool mode)
@@ -1171,14 +973,7 @@ void HT1621::DispGal(bool enable, bool mode)
     if (enable)
     {
         SET_BIT(buffer[GALLONS_POS], GALLONS_SEG);
-        if (mode)
-        {
-            SET_BIT(buffer[US_POS], US_SEG);
-        }
-        else
-        {
-            CLEAR_BIT(buffer[US_POS], US_SEG);
-        }
+        LCD_SWITCH(mode, US_POS, US_SEG);
     }
     else
     {
