@@ -35,8 +35,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <cstdint>
 #include <cstddef>
 
-#include "WVT_Display.h"
-
 class HT1621
 {
 public:
@@ -130,7 +128,222 @@ public:
      */
     void clear();
 
-    void DisplayMinMax(display_mode_t mode, min_max_t disp);
+    /*!
+    * \brief display min or max value
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    * \param mode true if russian or false if english symbols
+    * \param min true if display min, false if display max
+    */
+    void DispMinMax(bool enable, bool mode, bool min);
+
+    /*!
+    * \brief display burst or proriv
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    * \param mode true if russian or false if english symbols
+    */
+    void DispBurst(bool enable, bool mode);
+
+    /*!
+    * \brief display leak or TEch`
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    * \param mode true if russian or false if english symbols
+    */
+    void DispLeak(bool enable, bool mode);
+
+    /*!
+    * \brief display reverse or obr
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    * \param mode true if russian or false if english symbols
+    */
+    void DispRev(bool enable, bool mode);
+
+    /*!
+    * \brief display snowflake frost symbol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispFrost(bool enable);
+
+    /*!
+    * \brief display snowflake frost symbol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispQ(bool enable);
+
+    /*!
+    * \brief display version or no
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    * \param mode true if russian or false if english symbols
+    */
+    void DispVer(bool enable, bool mode);
+
+    /*!
+    * \brief display serial number or B
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    * \param mode true if russian or false if english symbols
+    */
+    void DispSN(bool enable, bool mode);
+
+    /*!
+    * \brief display warning sybmol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispWarn(bool enable);
+
+    /*!
+    * \brief display magnet sybmol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispMagn(bool enable);
+
+    /*!
+    * \brief display left sybmol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispLeft(bool enable);
+
+    /*!
+    * \brief display right sybmol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispRight(bool enable);
+
+    /*!
+    * \brief display no water sybmol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispNoWater(bool enable);
+    /*!
+    * \brief display CRC symbol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispCRC(bool enable);
+    /*!
+    * \brief display delta symbol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispDelta(bool enable);
+
+    /*!
+    * \brief display T symbol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispT(bool enable);
+
+    /*!
+    * \brief display 1 sybmol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void Disp1(bool enable);
+
+    /*!
+    * \brief display T2 sybmol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispT2(bool enable);
+
+    /*!
+    * \brief display NBFI radio sybmol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispNBFi(bool enable);
+
+    /*!
+    * \brief display NB-iot radio sybmol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispNBIoT(bool enable);
+
+    /*!
+    * \brief display level of signal
+    *
+    * \param percents if 0 - no display, 0--30 one segment, 30--60 two segments, more than 60 - 3 segments
+    */
+    void SignalLevel(uint8_t percents);
+
+    /*!
+    * \brief display DegreePoint sybmol
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    */
+    void DispDegreePoint(bool enable);
+
+    /*!
+    * \brief display energy in GJ or Kkal
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    * \param mode true if Kkal or false if GJ symbols
+    * \param perH true for display per hour symbol
+    */
+    void DispEnergyJ(bool enable, bool mode, bool perH);
+
+    /*!
+    * \brief display energy in MkWh
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    * \param M if true than display MW else display kW
+    * \param perH if true than display Wh else display W
+    */
+    void DispEnergyW(bool enable, bool M, bool perH);
+
+    /*!
+    * \brief display flow in m3 per hour
+    *
+    * \param enable true for enable symbols, false for disable all symbols
+    * \param mode if true than display per chas else display per hour
+    * \param perH if true than display per time else display only volume
+    */
+    void DispFlowM3(bool enable, bool mode, bool perH);
+
+    /*!
+     * \brief display flow in GAL per min
+     *
+     * \param enable true for enable symbols, false for disable all symbols
+     * \param perH if true than display per minute else display only volume
+     */
+    void DispFlowGAL(bool enable, bool perH);
+
+    /*!
+     * \brief display flow in FT3 per min
+     *
+     * \param enable true for enable symbols, false for disable all symbols
+     * \param perH if true than display per minute else display only volume
+     */
+    void DispFlowFT(bool enable, bool perH);
+
+    /*!
+     * \brief display britan meter unit for heat
+     *
+     * \param enable true for enable symbols, false for disable all symbols
+     */
+    void DispMMBTU(bool enable);
+
+    /*!
+     * \brief display u.s. gallons or gallons
+     *
+     * \param enable true for enable symbols, false for disable all symbols
+     * \param mode if true then display U.S. else display only GALLONS
+     */
+    void DispGal(bool enable, bool mode);
 
 private:
     static const size_t DISPLAY_SIZE = 9;                           // 16 * 8  = 128 symbols on display plus 2 byte for address

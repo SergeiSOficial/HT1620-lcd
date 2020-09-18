@@ -106,15 +106,134 @@ constexpr size_t BITS_PER_BYTE = 8;
 
 #define MIN_RU_SEG (1 << 0)
 #define MIN_RU_POS 5
-
 #define MAX_RU_SEG (1 << 4)
 #define MAX_RU_POS 2
 
 #define MIN_EN_SEG (1 << 0)
 #define MIN_EN_POS 6
-
 #define MAX_EN_SEG (1 << 0)
 #define MAX_EN_POS 3
+
+#define BURST_RU_SEG (1 << 4)
+#define BURST_RU_POS 1
+#define BURST_EN_SEG (1 << 7)
+#define BURST_EN_POS 1
+
+#define LEAK_RU_SEG (1 << 6)
+#define LEAK_RU_POS 1
+#define LEAK_EN_SEG (1 << 3)
+#define LEAK_EN_POS 1
+
+#define REV_RU_SEG (1 << 2)
+#define REV_RU_POS 1
+#define REV_EN_SEG (1 << 1)
+#define REV_EN_POS 1
+
+#define FROST_SEG (1 << 0)
+#define FROST_POS 2
+
+#define Q_SEG (1 << 3)
+#define Q_POS 2
+
+#define VER_RU_SEG (1 << 1)
+#define VER_RU_POS 2
+#define VER_EN_SEG (1 << 2)
+#define VER_EN_POS 2
+
+#define SN_RU_SEG (1 << 5)
+#define SN_RU_POS 1
+#define SN_EN_SEG (1 << 7)
+#define SN_EN_POS 16
+
+#define WARN_SEG (1 << 0)
+#define WARN_POS 17
+
+#define MAGNET_SEG (1 << 4)
+#define MAGNET_POS 16
+
+#define LEFT_SEG (1 << 0)
+#define LEFT_POS 16
+
+#define RIGHT_SEG (1 << 0)
+#define RIGHT_POS 15
+
+#define NOWATER_SEG (1 << 4)
+#define NOWATER_POS 15
+
+#define CRC_SEG (1 << 6)
+#define CRC_POS 16
+
+#define DELTA_SEG (1 << 5)
+#define DELTA_POS 16
+
+#define T_SEG (1 << 2)
+#define T_POS 16
+
+#define T1_SEG (1 << 3)
+#define T1_POS 16
+
+#define T2_SEG (1 << 7)
+#define T2_POS 15
+
+#define NBFI_SEG (1 << 4)
+#define NBFI_POS 14
+
+#define NBIOT_SEG (1 << 0)
+#define NBIOT_POS 14
+
+#define SIG1_SEG (1 << 7)
+#define SIG1_POS 14
+#define SIG2_SEG (1 << 3)
+#define SIG2_POS 14
+#define SIG3_SEG (1 << 7)
+#define SIG3_POS 13
+
+#define DEGREE_SEG (1 << 6)
+#define DEGREE_POS 15
+
+#define GCAL_SEG (1 << 2)
+#define GCAL_POS 13
+#define GCAL_H_SEG (1 << 6)
+#define GCAL_H_POS 12
+
+#define GJ_SEG (1 << 5)
+#define GJ_POS 15
+#define GJ_H_SEG (1 << 1)
+#define GJ_H_POS 13
+
+#define KW_SEG (1 << 5)
+#define KW_POS 11
+#define MW_SEG (1 << 6)
+#define MW_POS 11
+#define W_SEG (1 << 5)
+#define W_POS 12
+#define WH_SEG (1 << 1)
+#define WH_POS 12
+
+#define GAL_SEG (1 << 2)
+#define GAL_POS 13
+#define GAL_PM_SEG (1 << 6)
+#define GAL_PM_POS 12
+
+#define M3_SEG (1 << 0)
+#define M3_POS 12
+#define M3_H_SEG (1 << 3)
+#define M3_H_POS 12
+#define M3_H_EN_SEG (1 << 4)
+#define M3_H_EN_POS 12
+
+#define FT3_SEG (1 << 2)
+#define FT3_POS 15
+#define FT3_PM_SEG (1 << 1)
+#define FT3_PM_POS 15
+
+#define MMBTU_SEG (1 << 3)
+#define MMBTU_POS 15
+
+#define GALLONS_SEG (1 << 5)
+#define GALLONS_POS 14
+#define US_SEG (1 << 6)
+#define US_POS 14
 
 #define ALL_CLEAR_SEG (0xfe << 0) //0b11111110
 #define ALL_CLEAR_POS 1
@@ -551,22 +670,519 @@ void HT1621::decimalSeparator(uint8_t dpPosition)
     SET_BIT(buffer[P5_POS - dpPosition + 1], P1_SEG);
 }
 
-void HT1621::DisplayMinMax(enum display_mode_t mode, enum min_max_t disp)
+void HT1621::DispMinMax(bool enable, bool mode, bool min)
 {
-    if (mode == DISPLAY_MODE_RUSSIA)
+    if (enable)
     {
-        switch (disp)
+        if (mode)
         {
-        case DISPLAY_MIN:
-            SET_BIT(buffer[MIN_RU_POS], MIN_RU_SEG);
-            break;
-        case DISPLAY_MAX:
-            SET_BIT(buffer[MAX_RU_POS], MAX_RU_SEG);
-            break;
-        default:
-            CLEAR_BIT(buffer[MIN_RU_POS], MIN_RU_SEG);
-            CLEAR_BIT(buffer[MAX_RU_POS], MAX_RU_SEG);
-            break;
+            if (min)
+            {
+                SET_BIT(buffer[MIN_RU_POS], MIN_RU_SEG);
+                CLEAR_BIT(buffer[MAX_RU_POS], MAX_RU_SEG);
+            }
+            else
+            {
+                SET_BIT(buffer[MAX_RU_POS], MAX_RU_SEG);
+                CLEAR_BIT(buffer[MIN_RU_POS], MIN_RU_SEG);
+            }
         }
+        else
+        {
+            if (min)
+            {
+                SET_BIT(buffer[MIN_EN_POS], MIN_EN_SEG);
+                CLEAR_BIT(buffer[MAX_EN_POS], MAX_EN_SEG);
+            }
+            else
+            {
+                SET_BIT(buffer[MAX_EN_POS], MAX_EN_SEG);
+                CLEAR_BIT(buffer[MIN_EN_POS], MIN_EN_SEG);
+            }
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[MIN_RU_POS], MIN_RU_SEG);
+        CLEAR_BIT(buffer[MAX_RU_POS], MAX_RU_SEG);
+        CLEAR_BIT(buffer[MIN_EN_POS], MIN_EN_SEG);
+        CLEAR_BIT(buffer[MAX_EN_POS], MAX_EN_SEG);
+    }
+}
+
+void HT1621::DispBurst(bool enable, bool mode)
+{
+    if (enable)
+    {
+        if (mode)
+        {
+            SET_BIT(buffer[BURST_RU_POS], BURST_RU_SEG);
+        }
+        else
+        {
+            SET_BIT(buffer[BURST_EN_POS], BURST_EN_SEG);
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[BURST_RU_POS], BURST_RU_SEG);
+        CLEAR_BIT(buffer[BURST_EN_POS], BURST_EN_SEG);
+    }
+}
+
+void HT1621::DispLeak(bool enable, bool mode)
+{
+    if (enable)
+    {
+        if (mode)
+        {
+            SET_BIT(buffer[LEAK_RU_POS], LEAK_RU_SEG);
+        }
+        else
+        {
+            SET_BIT(buffer[LEAK_EN_POS], LEAK_EN_SEG);
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[LEAK_RU_POS], LEAK_RU_SEG);
+        CLEAR_BIT(buffer[LEAK_EN_POS], LEAK_EN_SEG);
+    }
+}
+
+void HT1621::DispRev(bool enable, bool mode)
+{
+    if (enable)
+    {
+        if (mode)
+        {
+            SET_BIT(buffer[REV_RU_POS], REV_RU_SEG);
+        }
+        else
+        {
+            SET_BIT(buffer[REV_EN_POS], REV_EN_SEG);
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[REV_RU_POS], REV_RU_SEG);
+        CLEAR_BIT(buffer[REV_EN_POS], REV_EN_SEG);
+    }
+}
+
+void HT1621::DispFrost(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[FROST_POS], FROST_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[FROST_POS], FROST_SEG);
+    }
+}
+
+void HT1621::DispQ(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[Q_POS], Q_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[Q_POS], Q_SEG);
+    }
+}
+
+void HT1621::DispVer(bool enable, bool mode)
+{
+    if (enable)
+    {
+        if (mode)
+        {
+            SET_BIT(buffer[VER_RU_POS], VER_RU_SEG);
+        }
+        else
+        {
+            SET_BIT(buffer[VER_EN_POS], VER_EN_SEG);
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[VER_RU_POS], VER_RU_SEG);
+        CLEAR_BIT(buffer[VER_EN_POS], VER_EN_SEG);
+    }
+}
+
+void HT1621::DispSN(bool enable, bool mode)
+{
+    if (enable)
+    {
+        if (mode)
+        {
+            SET_BIT(buffer[SN_RU_POS], SN_RU_SEG);
+        }
+        else
+        {
+            SET_BIT(buffer[SN_EN_POS], SN_EN_SEG);
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[SN_RU_POS], SN_RU_SEG);
+        CLEAR_BIT(buffer[SN_EN_POS], SN_EN_SEG);
+    }
+}
+
+void HT1621::DispWarn(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[WARN_POS], WARN_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[WARN_POS], WARN_SEG);
+    }
+}
+
+void HT1621::DispMagn(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[MAGNET_POS], MAGNET_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[MAGNET_POS], MAGNET_SEG);
+    }
+}
+
+void HT1621::DispLeft(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[LEFT_POS], LEFT_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[LEFT_POS], LEFT_SEG);
+    }
+}
+
+void HT1621::DispRight(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[RIGHT_POS], RIGHT_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[RIGHT_POS], RIGHT_SEG);
+    }
+}
+
+void HT1621::DispNoWater(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[NOWATER_POS], NOWATER_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[NOWATER_POS], NOWATER_SEG);
+    }
+}
+
+void HT1621::DispCRC(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[CRC_POS], CRC_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[CRC_POS], CRC_SEG);
+    }
+}
+
+void HT1621::DispDelta(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[DELTA_POS], DELTA_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[DELTA_POS], DELTA_SEG);
+    }
+}
+
+void HT1621::DispT(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[T_POS], T_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[T_POS], T_SEG);
+    }
+}
+
+void HT1621::Disp1(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[T1_POS], T1_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[T1_POS], T1_SEG);
+    }
+}
+
+void HT1621::DispT2(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[T2_POS], T2_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[T2_POS], T2_SEG);
+    }
+}
+
+void HT1621::DispNBFi(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[NBFI_POS], NBFI_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[NBFI_POS], NBFI_SEG);
+    }
+}
+
+void HT1621::DispNBIoT(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[NBIOT_POS], NBIOT_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[NBIOT_POS], NBIOT_SEG);
+    }
+}
+
+void HT1621::SignalLevel(uint8_t percents)
+{
+    CLEAR_BIT(buffer[SIG1_POS], SIG1_SEG);
+    CLEAR_BIT(buffer[SIG2_POS], SIG2_SEG);
+    CLEAR_BIT(buffer[SIG3_POS], SIG3_SEG);
+    if (percents > 60)
+    {
+        SET_BIT(buffer[SIG3_POS], SIG3_SEG);
+    }
+    if (percents > 30)
+    {
+        SET_BIT(buffer[SIG2_POS], SIG2_SEG);
+    }
+    if (percents > 0)
+    {
+        SET_BIT(buffer[SIG1_POS], SIG1_SEG);
+    }
+}
+
+void HT1621::DispDegreePoint(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[DEGREE_POS], DEGREE_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[DEGREE_POS], DEGREE_SEG);
+    }
+}
+
+void HT1621::DispEnergyJ(bool enable, bool mode, bool perH)
+{
+    if (enable)
+    {
+        if (mode)
+        {
+            SET_BIT(buffer[GCAL_POS], GCAL_SEG);
+            if (perH)
+            {
+                SET_BIT(buffer[GCAL_H_POS], GCAL_H_SEG);
+            }
+            else
+            {
+                CLEAR_BIT(buffer[GCAL_H_POS], GCAL_H_SEG);
+            }
+        }
+        else
+        {
+            SET_BIT(buffer[GJ_POS], GJ_SEG);
+            if (perH)
+            {
+                SET_BIT(buffer[GJ_H_POS], GJ_H_SEG);
+            }
+            else
+            {
+                CLEAR_BIT(buffer[GJ_H_POS], GJ_H_SEG);
+            }
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[GJ_POS], GJ_SEG);
+        CLEAR_BIT(buffer[GJ_H_POS], GJ_H_SEG);
+        CLEAR_BIT(buffer[GCAL_POS], GCAL_SEG);
+        CLEAR_BIT(buffer[GCAL_H_POS], GCAL_H_SEG);
+    }
+}
+
+void HT1621::DispEnergyW(bool enable, bool M, bool perH)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[W_POS], W_SEG);
+        if (M)
+        {
+            SET_BIT(buffer[MW_POS], MW_SEG);
+            CLEAR_BIT(buffer[KW_POS], KW_SEG);
+        }
+        else
+        {
+            SET_BIT(buffer[KW_POS], KW_SEG);
+            CLEAR_BIT(buffer[MW_POS], MW_SEG);
+        }
+
+        if (perH)
+        {
+            SET_BIT(buffer[WH_POS], WH_SEG);
+        }
+        else
+        {
+            CLEAR_BIT(buffer[WH_POS], WH_SEG);
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[W_POS], W_SEG);
+        CLEAR_BIT(buffer[KW_POS], KW_SEG);
+        CLEAR_BIT(buffer[MW_POS], MW_SEG);
+        CLEAR_BIT(buffer[WH_POS], WH_SEG);
+    }
+}
+
+void HT1621::DispFlowM3(bool enable, bool mode, bool perH)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[M3_POS], M3_SEG);
+        if (perH)
+        {
+            SET_BIT(buffer[M3_H_POS], M3_H_SEG);
+            if (mode)
+            {
+                CLEAR_BIT(buffer[M3_H_EN_POS], M3_H_EN_SEG);
+            }
+            else
+            {
+                SET_BIT(buffer[M3_H_EN_POS], M3_H_EN_SEG);
+            }
+        }
+        else
+        {
+            CLEAR_BIT(buffer[M3_H_POS], M3_H_SEG);
+            CLEAR_BIT(buffer[M3_H_EN_POS], M3_H_EN_SEG);
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[M3_POS], M3_SEG);
+        CLEAR_BIT(buffer[M3_H_POS], M3_H_SEG);
+        CLEAR_BIT(buffer[M3_H_EN_POS], M3_H_EN_SEG);
+    }
+}
+
+void HT1621::DispFlowGAL(bool enable, bool perH)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[GAL_POS], GAL_SEG);
+        if (perH)
+        {
+            SET_BIT(buffer[GAL_PM_POS], GAL_PM_SEG);
+        }
+        else
+        {
+            CLEAR_BIT(buffer[GAL_PM_POS], GAL_PM_SEG);
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[GAL_POS], GAL_SEG);
+        CLEAR_BIT(buffer[GAL_PM_POS], GAL_PM_SEG);
+    }
+}
+
+void HT1621::DispFlowFT(bool enable, bool perH)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[FT3_POS], FT3_SEG);
+        if (perH)
+        {
+            SET_BIT(buffer[FT3_PM_POS], FT3_PM_SEG);
+        }
+        else
+        {
+            CLEAR_BIT(buffer[FT3_PM_POS], FT3_PM_SEG);
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[FT3_POS], FT3_SEG);
+        CLEAR_BIT(buffer[FT3_PM_POS], FT3_PM_SEG);
+    }
+}
+
+void HT1621::DispMMBTU(bool enable)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[MMBTU_POS], MMBTU_SEG);
+    }
+    else
+    {
+        CLEAR_BIT(buffer[MMBTU_POS], MMBTU_SEG);
+    }
+}
+
+void HT1621::DispGal(bool enable, bool mode)
+{
+    if (enable)
+    {
+        SET_BIT(buffer[GALLONS_POS], GALLONS_SEG);
+        if (mode)
+        {
+            SET_BIT(buffer[US_POS], US_SEG);
+        }
+        else
+        {
+            CLEAR_BIT(buffer[US_POS], US_SEG);
+        }
+    }
+    else
+    {
+        CLEAR_BIT(buffer[GALLONS_POS], GALLONS_SEG);
+        CLEAR_BIT(buffer[US_POS], US_SEG);
     }
 }
