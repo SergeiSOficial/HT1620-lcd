@@ -614,7 +614,7 @@ void HT1621::print(int32_t num)
     lettersBufferClear();
 
     char str[DISPLAY_SIZE + 1] = {};
-    snprintf(str, sizeof(str), "%6li", num);
+    snprintf_s(str, sizeof(str), "%6li", num);
 
     bufferToAscii(str, buffer);
 
@@ -628,7 +628,7 @@ void HT1621::print(float num, uint8_t precision)
     else if (num < 0 && precision > PRECISION_MAX_NEGATIVE)
         precision = PRECISION_MAX_NEGATIVE;
 
-    if (num < MIN_NUM / 10)
+    if (num < (float)MIN_NUM / 10)
     {
         num = num * (-1);
         SET_BIT(buffer[MINUS_POS], MINUS_SEG);
