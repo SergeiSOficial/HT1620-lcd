@@ -614,7 +614,7 @@ void HT1621::print(int32_t num)
     lettersBufferClear();
 
     char str[DISPLAY_SIZE + 1] = {};
-    snprintf_s(str, sizeof(str), "%6li", num);
+    snprintf(str, sizeof(str), "%6li", num);
 
     bufferToAscii(str, buffer);
 
