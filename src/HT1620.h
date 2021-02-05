@@ -32,83 +32,60 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef HT1621_H_
 #define HT1621_H_
 
-#include <cstdint>
-#include <cstddef>
+#include <stdint.h>
+#include <stdbool.h>
 
-class HT1621
+typedef struct
 {
-public:
-    using pPinSet = void(bool);
-    using pInterface = void(uint8_t *, uint8_t);
+    void (*PinCs)(bool);
+    void (*PinSck)(bool);
+    void (*PinMosi)(bool);
+} HT1620_HAL_st;
 
-    /**
+/**
      * @brief Construct a new HT1621 object
      *
      * Starts the lcd with the pin assignment declared. The backlight pin is optional
-     *
-     * @param pCs - pointer to CS pin toggle function
-     * @param pSck - pointer to SCK pin toggle function
-     * @param pMosi - pointer to MOSI pin toggle function
-     * @param pBacklight - pointer to backlight pin toggle function. Optional
+     *  
+     * @param hal_ptr 
      */
-    HT1621(pPinSet *pCs, pPinSet *pSck, pPinSet *pMosi, pPinSet *pBacklight = nullptr);
+void HT1620Init(HT1620_HAL_st *hal_ptr);
 
-    /**
-     * @brief Construct a new HT1621::HT1621 object
-     *
-     * Starts the lcd with SPI interface. CS and backlight pins are optional
-     *
-     * @param pSpi - pointer to SPI write function
-     * @param pCs - pointer to CS pin toggle function. Optional if SPI has hardware CS configured
-     * @param pBacklight - pointer to backlight pin toggle function. Optional
-     */
-    HT1621(pInterface *pSpi, pPinSet *pCs = nullptr, pPinSet *pBacklight = nullptr);
-
-    /**
+/**
      * @brief Turns on the display (doesn't affect the backlight)
      */
-    void displayOn();
+void HT1620displayOn();
 
-    /**
+/**
      * @brief Turns off the display (doesn't affect the backlight)
      */
-    void displayOff();
+void HT1620displayOff();
 
-    /**
-     * @brief Turns on the backlight
-     */
-    void backlightOn();
-
-    /**
-     * @brief Turns off the backlight
-     */
-    void backlightOff();
-
-    /**
+/**
      * @brief Show battery level.
      *
      * @param percents - battery charge state. May vary from 0 up to 100
      */
-    void batteryLevel(uint8_t percents);
+void HT1620batteryLevel(uint8_t percents);
 
-    /**
+/**
      * @brief Print string (up to 6 characters)
      *
      * @param str String to be displayed.
      * Allowed: letters, digits, space, minus, underscore
      * Not allowed symbols will be displayed as spaces. See symbols appearance in README.md
      */
-    void print(const char *str);
+void HT1620printStr(const char *str);
 
-    /**
+/**
      * @brief Prints a signed integer between -99999 and 999999.
      * Larger and smaller values will be displayed as -99999 and 999999
      *
      * @param num - number to be printed
      */
-    void print(int32_t num);
+void HT1620printNum(int32_t num);
 
-    /**
+/**
      * @brief Prints a float with 0 to 3 decimals, based on the `precision` parameter. Default value is 3
      * This method may be slow on many systems. Try to avoid float usage.
      * You may use `void print(int32_t multiplied_float, uint32_t multiplier)` instead
@@ -116,273 +93,242 @@ public:
      * @param num  - number to be printed
      * @param precision - precision of the number
      */
-    void print(float num, uint8_t precision = 3);
+void HT1620printFloat(float num, uint8_t precision);
 
-    /**
+/**
      * @brief Prints number with dot. Use it instead float. Float type usage may slow down many systems
      */
-    void print(int32_t multiplied_float, uint32_t multiplier);
+void HT1620printFixedPoint(int32_t multiplied_float, uint32_t multiplier);
 
-    /**
+/**
      * @brief Clears the display
      */
-    void clear();
+void HT1620clear();
 
-    /*!
+/*!
     * \brief display min or max value
     *
     * \param enable true for enable symbols, false for disable all symbols
     * \param mode true if russian or false if english symbols
     * \param min true if display min, false if display max
     */
-    void DispMinMax(bool enable, bool mode, bool min);
+void HT1620DispMinMax(bool enable, bool mode, bool min);
 
-    /*!
+/*!
     * \brief display burst or proriv
     *
     * \param enable true for enable symbols, false for disable all symbols
     * \param mode true if russian or false if english symbols
     */
-    void DispBurst(bool enable, bool mode);
+void HT1620DispBurst(bool enable, bool mode);
 
-    /*!
+/*!
     * \brief display leak or TEch`
     *
     * \param enable true for enable symbols, false for disable all symbols
     * \param mode true if russian or false if english symbols
     */
-    void DispLeak(bool enable, bool mode);
+void HT1620DispLeak(bool enable, bool mode);
 
-    /*!
+/*!
     * \brief display reverse or obr
     *
     * \param enable true for enable symbols, false for disable all symbols
     * \param mode true if russian or false if english symbols
     */
-    void DispRev(bool enable, bool mode);
+void HT1620DispRev(bool enable, bool mode);
 
-    /*!
+/*!
     * \brief display snowflake frost symbol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispFrost(bool enable);
+void HT1620DispFrost(bool enable);
 
-    /*!
+/*!
     * \brief display snowflake frost symbol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispQ(bool enable);
+void HT1620DispQ(bool enable);
 
-    /*!
+/*!
     * \brief display version or no
     *
     * \param enable true for enable symbols, false for disable all symbols
     * \param mode true if russian or false if english symbols
     */
-    void DispVer(bool enable, bool mode);
+void HT1620DispVer(bool enable, bool mode);
 
-    /*!
+/*!
     * \brief display serial number or B
     *
     * \param enable true for enable symbols, false for disable all symbols
     * \param mode true if russian or false if english symbols
     */
-    void DispSN(bool enable, bool mode);
+void HT1620DispSN(bool enable, bool mode);
 
-    /*!
+/*!
     * \brief display warning sybmol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispWarn(bool enable);
+void HT1620DispWarn(bool enable);
 
-    /*!
+/*!
     * \brief display magnet sybmol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispMagn(bool enable);
+void HT1620DispMagn(bool enable);
 
-    /*!
+/*!
     * \brief display left sybmol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispLeft(bool enable);
+void HT1620DispLeft(bool enable);
 
-    /*!
+/*!
     * \brief display right sybmol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispRight(bool enable);
+void HT1620DispRight(bool enable);
 
-    /*!
+/*!
     * \brief display no water sybmol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispNoWater(bool enable);
-    /*!
+void HT1620DispNoWater(bool enable);
+/*!
     * \brief display CRC symbol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispCRC(bool enable);
-    /*!
+void HT1620DispCRC(bool enable);
+/*!
     * \brief display delta symbol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispDelta(bool enable);
+void HT1620DispDelta(bool enable);
 
-    /*!
+/*!
     * \brief display T symbol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispT(bool enable);
+void HT1620DispT(bool enable);
 
-    /*!
+/*!
     * \brief display 1 sybmol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void Disp1(bool enable);
+void HT1620Disp1(bool enable);
 
-    /*!
+/*!
     * \brief display T2 sybmol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispT2(bool enable);
+void HT1620DispT2(bool enable);
 
-    /*!
+/*!
     * \brief display NBFI radio sybmol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispNBFi(bool enable);
+void HT1620DispNBFi(bool enable);
 
-    /*!
+/*!
     * \brief display NB-iot radio sybmol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispNBIoT(bool enable);
+void HT1620DispNBIoT(bool enable);
 
-    /*!
+/*!
     * \brief display level of signal
     *
     * \param percents if 0 - no display, 0--30 one segment, 30--60 two segments, more than 60 - 3 segments
     */
-    void SignalLevel(uint8_t percents);
+void HT1620SignalLevel(uint8_t percents);
 
-    /*!
+/*!
     * \brief display DegreePoint sybmol
     *
     * \param enable true for enable symbols, false for disable all symbols
     */
-    void DispDegreePoint(bool enable);
+void HT1620DispDegreePoint(bool enable);
 
-    /*!
+/*!
     * \brief display energy in GJ or Kkal
     *
     * \param enable true for enable symbols, false for disable all symbols
     * \param mode true if Kkal or false if GJ symbols
     * \param perH true for display per hour symbol
     */
-    void DispEnergyJ(bool enable, bool mode, bool perH);
+void HT1620DispEnergyJ(bool enable, bool mode, bool perH);
 
-    /*!
+/*!
     * \brief display energy in MkWh
     *
     * \param enable true for enable symbols, false for disable all symbols
     * \param M if true than display MW else display kW
     * \param perH if true than display Wh else display W
     */
-    void DispEnergyW(bool enable, bool M, bool perH);
+void HT1620DispEnergyW(bool enable, bool M, bool perH);
 
-    /*!
+/*!
     * \brief display flow in m3 per hour
     *
     * \param enable true for enable symbols, false for disable all symbols
     * \param mode if true than display per chas else display per hour
     * \param perH if true than display per time else display only volume
     */
-    void DispFlowM3(bool enable, bool mode, bool perH);
+void HT1620DispFlowM3(bool enable, bool mode, bool perH);
 
-    /*!
+/*!
      * \brief display flow in GAL per min
      *
      * \param enable true for enable symbols, false for disable all symbols
      * \param perH if true than display per minute else display only volume
      */
-    void DispFlowGAL(bool enable, bool perH);
+void HT1620DispFlowGAL(bool enable, bool perH);
 
-    /*!
+/*!
      * \brief display flow in FT3 per min
      *
      * \param enable true for enable symbols, false for disable all symbols
      * \param perH if true than display per minute else display only volume
      */
-    void DispFlowFT(bool enable, bool perH);
+void HT1620DispFlowFT(bool enable, bool perH);
 
-    /*!
+/*!
      * \brief display britan meter unit for heat
      *
      * \param enable true for enable symbols, false for disable all symbols
      */
-    void DispMMBTU(bool enable);
+void HT1620DispMMBTU(bool enable);
 
-    /*!
+/*!
      * \brief display u.s. gallons or gallons
      *
      * \param enable true for enable symbols, false for disable all symbols
      * \param mode if true then display U.S. else display only GALLONS
      */
-    void DispGal(bool enable, bool mode);
+void HT1620DispGal(bool enable, bool mode);
 
-private:
-    static const size_t DISPLAY_SIZE = 9;                           // 16 * 8  = 128 symbols on display plus 2 byte for address
-    static const size_t SYS_SIZE = 2;                               // 2 byte for address and commands
-    static const size_t DATA_SIZE = 16;                             // 16 * 8  = 128 symbols on display
-    static const size_t DISPLAY_BUFFER_SIZE = DATA_SIZE + SYS_SIZE; //  plus 2 byte for address
-    uint8_t buffer[DISPLAY_BUFFER_SIZE] = {};                       // buffer where display data will be stored
+#define DISPLAY_SIZE 9                             // 16 * 8  = 128 symbols on display plus 2 byte for address
+#define SYS_SIZE 2                                 // 2 byte for address and commands
+#define DATA_SIZE 16                               // 16 * 8  = 128 symbols on display
+#define DISPLAY_BUFFER_SIZE (DATA_SIZE + SYS_SIZE) //  plus 2 byte for address
 
-    // defines to set display pin to low or high level
-    const bool LOW = 0;
-    const bool HIGH = 1;
-
-    pPinSet *pCsPin = nullptr;           // SPI CS pin
-    pPinSet *pSckPin = nullptr;          // for display it is WR pin
-    pPinSet *pMosiPin = nullptr;         // for display it is Data pin
-    pPinSet *pBacklightPin = nullptr;    // display backlight pin
-    pInterface *pSpiInterface = nullptr; // ptr to SPI_tx implementation
-
-    inline void LCD_TOGGLE(bool EN, uint8_t POS1, uint8_t SEG1, uint8_t POS2, uint8_t SEG2);
-    // the most low-level function. Sends array of bytes into display
-    void wrBytes(uint8_t *ptr, uint8_t size);
-    // write buffer to the display
-    void wrBuffer();
-    // write command sequence to display
-    void wrCmd(uint8_t cmd);
-    // set decimal separator. Used when print float numbers
-    void decimalSeparator(uint8_t dpPosition);
-    // takes the buffer and puts it straight into the driver
-    void update();
-    // remove battery symbol from display buffer
-    void batteryBufferClear();
-    // remove dot symbol from display buffer
-    void dotsBufferClear();
-    // remove all symbols from display buffer except battery and dots
-    void lettersBufferClear();
-    //Clear all segments
-    void AllClear();
-    // coverts buffer symbols to format, which can be displayed by lcd
-    void bufferToAscii(const char *in, uint8_t *out);
-};
+// defines to set display pin to low or high level
+#define LOW 0
+#define HIGH 1
 
 #endif

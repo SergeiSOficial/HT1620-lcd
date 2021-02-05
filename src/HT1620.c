@@ -29,23 +29,22 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 *******************************************************************************/
 
-#include "HT1621.hpp"
-#include <cmath>
-#include <cstdio>
-#include <cstring>
-#include <algorithm>
+#include "HT1620.h"
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 /**
  * @brief CALCULATION DEFINES BLOCK
  */
-constexpr int MAX_NUM = 999999999;
-constexpr int MIN_NUM = -999999999;
+#define MAX_NUM 999999999
+#define MIN_NUM -999999999
 
-constexpr size_t PRECISION_MAX_POSITIVE = 5; // TODO: find better names
-constexpr size_t PRECISION_MAX_NEGATIVE = 5;
-constexpr size_t PRECISION_MIN = 1;
+#define PRECISION_MAX_POSITIVE 5 // TODO: find better names
+#define PRECISION_MAX_NEGATIVE 5
+#define PRECISION_MIN 1
 
-constexpr size_t BITS_PER_BYTE = 8;
+#define BITS_PER_BYTE 8
 
 #ifndef MIN
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -60,9 +59,11 @@ constexpr size_t BITS_PER_BYTE = 8;
 #define CLEAR_BIT(REG, BIT) ((REG) |= (BIT))
 #endif //CLEAR_BIT
 
+uint8_t buffer[DISPLAY_BUFFER_SIZE] = {0}; // buffer where display data will be stored
+
 #define LCD_SWITCH(EN, POS, SEG) ((EN) ? (SET_BIT(buffer[POS], SEG)) : (CLEAR_BIT(buffer[POS], SEG)))
 //#define LCD_TOGGLE(EN, POS1, SEG1, POS2, SEG2) ((EN) ? ({SET_BIT(buffer[POS1], SEG1); CLEAR_BIT(buffer[POS2], SEG2); }) : ({SET_BIT(buffer[POS2], SEG2); CLEAR_BIT(buffer[POS1], SEG1); }))
-inline void HT1621::LCD_TOGGLE(bool EN, uint8_t POS1, uint8_t SEG1, uint8_t POS2, uint8_t SEG2)
+inline void LCD_TOGGLE(bool EN, uint8_t POS1, uint8_t SEG1, uint8_t POS2, uint8_t SEG2)
 {
     if (EN)
     {
@@ -374,23 +375,6 @@ static const char ascii[] =
 #error "Unable to determine endian. Set it manually"
 #endif
 
-union tCmdSeq
-{
-    struct __attribute__((packed))
-    {
-#if defined LITTLE_ENDIAN
-        uint16_t padding : 4;
-        uint16_t data : 8;
-        uint16_t type : 4;
-#elif defined BIG_ENDIAN
-        uint16_t type : 4;
-        uint16_t data : 8;
-        uint16_t padding : 4;
-#endif
-    };
-    uint8_t arr[2];
-};
-
 union tDataSeq
 {
     struct //__attribute__((packed))
@@ -413,12 +397,33 @@ union tDataSeq
     uint8_t arr[18];
 };
 
-HT1621::HT1621(pPinSet *pCs, pPinSet *pSck, pPinSet *pMosi, pPinSet *pBacklight)
+HT1620_HAL_st *HT1620_hal = 0;
+
+inline void LCD_TOGGLE(bool EN, uint8_t POS1, uint8_t SEG1, uint8_t POS2, uint8_t SEG2);
+// the most low-level function. Sends array of bytes into display
+void wrBytes(uint8_t *ptr, uint8_t size);
+// write buffer to the display
+void wrBuffer();
+// write command sequence to display
+void wrCmd(uint8_t cmd);
+// set decimal separator. Used when print float numbers
+void decimalSeparator(uint8_t dpPosition);
+// takes the buffer and puts it straight into the driver
+void update();
+// remove battery symbol from display buffer
+void batteryBufferClear();
+// remove dot symbol from display buffer
+void dotsBufferClear();
+// remove all symbols from display buffer except battery and dots
+void lettersBufferClear();
+//Clear all segments
+void AllClear();
+// coverts buffer symbols to format, which can be displayed by lcd
+void bufferToAscii(const char *in, uint8_t *out);
+
+void HT1620Init(HT1620_HAL_st *hal_ptr)
 {
-    pCsPin = pCs;
-    pSckPin = pSck;
-    pMosiPin = pMosi;
-    pBacklightPin = pBacklight;
+    HT1620_hal = hal_ptr;
 
     wrCmd(BIAS);
     wrCmd(RC256);
@@ -428,43 +433,32 @@ HT1621::HT1621(pPinSet *pCs, pPinSet *pSck, pPinSet *pMosi, pPinSet *pBacklight)
     wrCmd(LCDON);
 }
 
-HT1621::HT1621(pInterface *pSpi, pPinSet *pCs, pPinSet *pBacklight)
-{
-    pSpiInterface = pSpi;
-    pCsPin = pCs;
-    pBacklightPin = pBacklight;
-
-    wrCmd(BIAS);
-    wrCmd(RC256);
-    wrCmd(SYSDIS);
-    wrCmd(WDTDIS1);
-    wrCmd(SYSEN);
-    wrCmd(LCDON);
-}
-
-void HT1621::backlightOn()
-{
-    if (pBacklightPin)
-        pBacklightPin(HIGH);
-}
-
-void HT1621::backlightOff()
-{
-    if (pBacklightPin)
-        pBacklightPin(LOW);
-}
-
-void HT1621::displayOn()
+void HT1620displayOn()
 {
     wrCmd(LCDON);
 }
 
-void HT1621::displayOff()
+void HT1620displayOff()
 {
     wrCmd(LCDOFF);
 }
 
-void HT1621::wrBytes(uint8_t *ptr, uint8_t size)
+void *reverseBytes(void *inp, size_t len)
+{
+    unsigned int i;
+    unsigned char *in = (unsigned char *)inp, tmp;
+
+    for (i = 0; i < len / 2; i++)
+    {
+        tmp = *(in + i);
+        *(in + i) = *(in + len - i - 1);
+        *(in + len - i - 1) = tmp;
+    }
+
+    return inp;
+}
+
+void wrBytes(uint8_t *ptr, uint8_t size)
 {
     // probably need to use microsecond delays in this method
     // after every pin toggle function to give display
@@ -472,32 +466,30 @@ void HT1621::wrBytes(uint8_t *ptr, uint8_t size)
 
     // TODO: check wrong size
     // lcd driver expects data in reverse order
-    std::reverse(ptr, ptr + size);
+    reverseBytes(ptr, size);
 
-    if (pCsPin)
-        pCsPin(LOW);
+    if (HT1620_hal->PinCs)
+        HT1620_hal->PinCs(LOW);
 
-    if (pSpiInterface)
-        pSpiInterface(ptr, size);
-    else if (pSckPin && pMosiPin)
+    else if (HT1620_hal->PinSck && HT1620_hal->PinMosi)
     {
         for (size_t k = 0; k < size; k++)
         {
             // send bits into display one by one
             for (size_t i = 0; i < BITS_PER_BYTE; i++)
             {
-                pSckPin(LOW);
-                pMosiPin((ptr[k] & (0x80 >> i)) ? HIGH : LOW);
-                pSckPin(HIGH);
+                HT1620_hal->PinSck(LOW);
+                HT1620_hal->PinMosi((ptr[k] & (0x80 >> i)) ? HIGH : LOW);
+                HT1620_hal->PinSck(HIGH);
             }
         }
     }
 
-    if (pCsPin)
-        pCsPin(HIGH);
+    if (HT1620_hal->PinCs)
+        HT1620_hal->PinCs(HIGH);
 }
 
-void HT1621::wrBuffer()
+void wrBuffer()
 {
     buffer[0] = MODE_DATA | (0 << ADR0_SHIFT);
     buffer[1] |= (0 << ADR1_SHIFT);
@@ -505,16 +497,31 @@ void HT1621::wrBuffer()
     wrBytes(buffer, sizeof(buffer));
 }
 
-void HT1621::wrCmd(uint8_t cmd)
+void wrCmd(uint8_t cmd)
 {
-    tCmdSeq CommandSeq = {};
+    union
+    {
+        struct __attribute__((packed))
+        {
+#if defined LITTLE_ENDIAN
+            uint16_t padding : 4;
+            uint16_t data : 8;
+            uint16_t type : 4;
+#elif defined BIG_ENDIAN
+            uint16_t type : 4;
+            uint16_t data : 8;
+            uint16_t padding : 4;
+#endif
+        };
+        uint8_t arr[2];
+    } CommandSeq;
     CommandSeq.type = MODE_CMD;
     CommandSeq.data = cmd;
 
-    wrBytes(CommandSeq.arr, sizeof(tCmdSeq));
+    wrBytes(CommandSeq.arr, sizeof(CommandSeq));
 }
 
-void HT1621::batteryLevel(uint8_t percents)
+void HT1620batteryLevel(uint8_t percents)
 {
     batteryBufferClear();
     SET_BIT(buffer[BAT14_POS], BAT4_SEG);
@@ -533,13 +540,13 @@ void HT1621::batteryLevel(uint8_t percents)
     wrBuffer();
 }
 
-void HT1621::batteryBufferClear()
+void batteryBufferClear()
 {
     CLEAR_BIT(buffer[BAT14_POS], BAT1_SEG | BAT4_SEG);
     CLEAR_BIT(buffer[BAT23_POS], BAT2_SEG | BAT3_SEG);
 }
 
-void HT1621::dotsBufferClear()
+void dotsBufferClear()
 {
     for (size_t i = 0; i < PRECISION_MAX_POSITIVE; i++)
     {
@@ -547,7 +554,7 @@ void HT1621::dotsBufferClear()
     }
 }
 
-void HT1621::lettersBufferClear()
+void lettersBufferClear()
 {
     for (size_t i = 0; i < DISPLAY_SIZE; i++)
     {
@@ -557,7 +564,7 @@ void HT1621::lettersBufferClear()
     }
 }
 
-void HT1621::AllClear()
+void AllClear()
 {
     CLEAR_BIT(buffer[ALL_CLEAR_POS], ALL_CLEAR_SEG);
     for (size_t i = 0; i < DATA_SIZE; i++)
@@ -565,14 +572,14 @@ void HT1621::AllClear()
         buffer[i + SYS_SIZE] = 0;
     }
 }
-void HT1621::clear()
+void clear()
 {
     AllClear();
 
     wrBuffer();
 }
 
-void HT1621::bufferToAscii(const char *in, uint8_t *out)
+void bufferToAscii(const char *in, uint8_t *out)
 {
     for (size_t i = 0; i < MIN(DISPLAY_SIZE, strlen(in)); i++)
     {
@@ -595,7 +602,7 @@ void HT1621::bufferToAscii(const char *in, uint8_t *out)
     }
 }
 
-void HT1621::print(const char *str)
+void HT1620printStr(const char *str)
 {
     dotsBufferClear();
     lettersBufferClear();
@@ -603,7 +610,7 @@ void HT1621::print(const char *str)
     wrBuffer();
 }
 
-void HT1621::print(int32_t num)
+void HT1620printNum(int32_t num)
 {
     if (num > MAX_NUM)
         num = MAX_NUM;
@@ -613,7 +620,7 @@ void HT1621::print(int32_t num)
     dotsBufferClear();
     lettersBufferClear();
 
-    char str[DISPLAY_SIZE + 1] = {};
+    char str[DISPLAY_SIZE + 1] = {0};
     snprintf_s(str, sizeof(str), "%6li", num);
 
     bufferToAscii(str, buffer);
@@ -621,7 +628,7 @@ void HT1621::print(int32_t num)
     wrBuffer();
 }
 
-void HT1621::print(float num, uint8_t precision)
+void HT1620printFloat(float num, uint8_t precision)
 {
     if (num >= 0 && precision > PRECISION_MAX_POSITIVE)
         precision = PRECISION_MAX_POSITIVE;
@@ -645,14 +652,14 @@ void HT1621::print(float num, uint8_t precision)
     if (integerated < MIN_NUM)
         integerated = MIN_NUM;
 
-    print(integerated);
+    HT1620printNum(integerated);
     decimalSeparator(precision);
 
     wrBuffer();
 }
 
 // TODO: make multiplier more strict.
-void HT1621::print(int32_t multiplied_float, uint32_t multiplier)
+void HT1620printFixed(int32_t multiplied_float, uint32_t multiplier)
 {
     uint8_t precision = 0;
 
@@ -672,13 +679,13 @@ void HT1621::print(int32_t multiplied_float, uint32_t multiplier)
     if (multiplied_float < MIN_NUM)
         multiplied_float = MIN_NUM;
 
-    print((int32_t)multiplied_float);
+    HT1620printNum((int32_t)multiplied_float);
     decimalSeparator(precision);
 
     wrBuffer();
 }
 
-void HT1621::decimalSeparator(uint8_t dpPosition)
+void decimalSeparator(uint8_t dpPosition)
 {
     dotsBufferClear();
 
@@ -689,7 +696,7 @@ void HT1621::decimalSeparator(uint8_t dpPosition)
     SET_BIT(buffer[P5_POS - dpPosition + 1], P1_SEG);
 }
 
-void HT1621::DispMinMax(bool enable, bool mode, bool min)
+void HT1620DispMinMax(bool enable, bool mode, bool min)
 {
     if (enable)
     {
@@ -711,7 +718,7 @@ void HT1621::DispMinMax(bool enable, bool mode, bool min)
     }
 }
 
-void HT1621::DispBurst(bool enable, bool mode)
+void HT1620DispBurst(bool enable, bool mode)
 {
     if (enable)
     {
@@ -724,7 +731,7 @@ void HT1621::DispBurst(bool enable, bool mode)
     }
 }
 
-void HT1621::DispLeak(bool enable, bool mode)
+void HT1620DispLeak(bool enable, bool mode)
 {
     if (enable)
     {
@@ -737,7 +744,7 @@ void HT1621::DispLeak(bool enable, bool mode)
     }
 }
 
-void HT1621::DispRev(bool enable, bool mode)
+void HT1620DispRev(bool enable, bool mode)
 {
     if (enable)
     {
@@ -750,17 +757,17 @@ void HT1621::DispRev(bool enable, bool mode)
     }
 }
 
-void HT1621::DispFrost(bool enable)
+void HT1620DispFrost(bool enable)
 {
     LCD_SWITCH(enable, FROST_POS, FROST_SEG);
 }
 
-void HT1621::DispQ(bool enable)
+void HT1620DispQ(bool enable)
 {
     LCD_SWITCH(enable, Q_POS, Q_SEG);
 }
 
-void HT1621::DispVer(bool enable, bool mode)
+void HT1620DispVer(bool enable, bool mode)
 {
     if (enable)
     {
@@ -773,7 +780,7 @@ void HT1621::DispVer(bool enable, bool mode)
     }
 }
 
-void HT1621::DispSN(bool enable, bool mode)
+void HT1620DispSN(bool enable, bool mode)
 {
     if (enable)
     {
@@ -786,67 +793,67 @@ void HT1621::DispSN(bool enable, bool mode)
     }
 }
 
-void HT1621::DispWarn(bool enable)
+void HT1620DispWarn(bool enable)
 {
     LCD_SWITCH(enable, WARN_POS, WARN_SEG);
 }
 
-void HT1621::DispMagn(bool enable)
+void HT1620DispMagn(bool enable)
 {
     LCD_SWITCH(enable, MAGNET_POS, MAGNET_SEG);
 }
 
-void HT1621::DispLeft(bool enable)
+void HT1620DispLeft(bool enable)
 {
     LCD_SWITCH(enable, LEFT_POS, LEFT_SEG);
 }
 
-void HT1621::DispRight(bool enable)
+void HT1620DispRight(bool enable)
 {
     LCD_SWITCH(enable, RIGHT_POS, RIGHT_SEG);
 }
 
-void HT1621::DispNoWater(bool enable)
+void HT1620DispNoWater(bool enable)
 {
     LCD_SWITCH(enable, NOWATER_POS, NOWATER_SEG);
 }
 
-void HT1621::DispCRC(bool enable)
+void HT1620DispCRC(bool enable)
 {
     LCD_SWITCH(enable, CRC_POS, CRC_SEG);
 }
 
-void HT1621::DispDelta(bool enable)
+void HT1620DispDelta(bool enable)
 {
     LCD_SWITCH(enable, DELTA_POS, DELTA_SEG);
 }
 
-void HT1621::DispT(bool enable)
+void HT1620DispT(bool enable)
 {
     LCD_SWITCH(enable, T_POS, T_SEG);
 }
 
-void HT1621::Disp1(bool enable)
+void HT1620Disp1(bool enable)
 {
     LCD_SWITCH(enable, T1_POS, T1_SEG);
 }
 
-void HT1621::DispT2(bool enable)
+void HT1620DispT2(bool enable)
 {
     LCD_SWITCH(enable, T2_POS, T2_SEG);
 }
 
-void HT1621::DispNBFi(bool enable)
+void HT1620DispNBFi(bool enable)
 {
     LCD_SWITCH(enable, NBFI_POS, NBFI_SEG);
 }
 
-void HT1621::DispNBIoT(bool enable)
+void HT1620DispNBIoT(bool enable)
 {
     LCD_SWITCH(enable, NBIOT_POS, NBIOT_SEG);
 }
 
-void HT1621::SignalLevel(uint8_t percents)
+void HT1620SignalLevel(uint8_t percents)
 {
     CLEAR_BIT(buffer[SIG1_POS], SIG1_SEG);
     CLEAR_BIT(buffer[SIG2_POS], SIG2_SEG);
@@ -865,12 +872,12 @@ void HT1621::SignalLevel(uint8_t percents)
     }
 }
 
-void HT1621::DispDegreePoint(bool enable)
+void HT1620DispDegreePoint(bool enable)
 {
     LCD_SWITCH(enable, DEGREE_POS, DEGREE_SEG);
 }
 
-void HT1621::DispEnergyJ(bool enable, bool mode, bool perH)
+void HT1620DispEnergyJ(bool enable, bool mode, bool perH)
 {
     if (enable)
     {
@@ -894,7 +901,7 @@ void HT1621::DispEnergyJ(bool enable, bool mode, bool perH)
     }
 }
 
-void HT1621::DispEnergyW(bool enable, bool M, bool perH)
+void HT1620DispEnergyW(bool enable, bool M, bool perH)
 {
     if (enable)
     {
@@ -911,7 +918,7 @@ void HT1621::DispEnergyW(bool enable, bool M, bool perH)
     }
 }
 
-void HT1621::DispFlowM3(bool enable, bool mode, bool perH)
+void HT1620DispFlowM3(bool enable, bool mode, bool perH)
 {
     if (enable)
     {
@@ -935,7 +942,7 @@ void HT1621::DispFlowM3(bool enable, bool mode, bool perH)
     }
 }
 
-void HT1621::DispFlowGAL(bool enable, bool perH)
+void HT1620DispFlowGAL(bool enable, bool perH)
 {
     if (enable)
     {
@@ -949,7 +956,7 @@ void HT1621::DispFlowGAL(bool enable, bool perH)
     }
 }
 
-void HT1621::DispFlowFT(bool enable, bool perH)
+void HT1620DispFlowFT(bool enable, bool perH)
 {
     if (enable)
     {
@@ -963,12 +970,12 @@ void HT1621::DispFlowFT(bool enable, bool perH)
     }
 }
 
-void HT1621::DispMMBTU(bool enable)
+void HT1620DispMMBTU(bool enable)
 {
     LCD_SWITCH(enable, MMBTU_POS, MMBTU_SEG);
 }
 
-void HT1621::DispGal(bool enable, bool mode)
+void HT1620DispGal(bool enable, bool mode)
 {
     if (enable)
     {
