@@ -30,6 +30,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *******************************************************************************/
 
 #include "HT1620.h"
+#include "main.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -89,6 +90,7 @@ inline void LCD_TOGGLE(bool EN, uint8_t POS1, uint8_t SEG1, uint8_t POS2, uint8_
 #define TONEON 0x12  //0b1000 0001 0010  Turn on tone outputs
 #define TONEOFF 0x10 //0b1000 0001 0000  Turn off tone outputs
 #define WDTDIS1 0x0A //0b1000 0000 1010  Disable WDT time-out flag output
+#define CLRTMR 0x1A //0b1000 0000 1010  Disable WDT time-out flag output
 
 #define MODE_CMD 0x08
 #define MODE_DATA 0x05
@@ -426,11 +428,19 @@ void HT1620Init(HT1620_HAL_st *hal_ptr)
     HT1620_hal = hal_ptr;
 
     wrCmd(BIAS);
-    wrCmd(RC256);
+   // wrCmd(XTAL);
     wrCmd(SYSDIS);
     wrCmd(WDTDIS1);
     wrCmd(SYSEN);
     wrCmd(LCDON);
+
+    wrCmd(BIAS);
+
+//    wrCmd(XTAL);
+//    wrCmd(CLRTMR);
+
+//    wrCmd(TONEOFF);
+//    wrCmd(LCDOFF);
 }
 
 void HT1620displayOn()
@@ -468,11 +478,14 @@ void wrBytes(uint8_t *ptr, uint8_t size)
     // lcd driver expects data in reverse order
     reverseBytes(ptr, size);
 
-    if (HT1620_hal->PinCs)
-        HT1620_hal->PinCs(LOW);
 
-    else if (HT1620_hal->PinSck && HT1620_hal->PinMosi)
+
+    if (HT1620_hal->PinSck && HT1620_hal->PinMosi)
     {
+        if (HT1620_hal->PinCs)
+        {
+            HT1620_hal->PinCs(LOW);
+        }
         for (size_t k = 0; k < size; k++)
         {
             // send bits into display one by one
@@ -480,7 +493,17 @@ void wrBytes(uint8_t *ptr, uint8_t size)
             {
                 HT1620_hal->PinSck(LOW);
                 HT1620_hal->PinMosi((ptr[k] & (0x80 >> i)) ? HIGH : LOW);
+                volatile uint32_t wait_loop_index = ((1500 * (SystemCoreClock / (100000 * 2))) / 10);
+                while(wait_loop_index != 0)
+                {
+                    wait_loop_index--;
+                }
                 HT1620_hal->PinSck(HIGH);
+                wait_loop_index = ((1500 * (SystemCoreClock / (100000 * 2))) / 10);
+                while(wait_loop_index != 0)
+                {
+                    wait_loop_index--;
+                }
             }
         }
     }
