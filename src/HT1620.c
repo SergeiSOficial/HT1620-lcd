@@ -644,7 +644,11 @@ void HT1620printNum(int32_t num)
     lettersBufferClear();
 
     char str[DISPLAY_SIZE + 1] = {0};
-    snprintf_s(str, sizeof(str), "%6li", num);
+#if __STDC_WANT_LIB_EXT1__ == 1
+        snprintf_s(str, sizeof(str), "%6li", num);
+#else
+        snprintf(str, sizeof(str), "%6li", num);
+#endif
 
     bufferToAscii(str, buffer);
 
