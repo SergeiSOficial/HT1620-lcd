@@ -37,17 +37,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 typedef struct
 {
-    void (*PinCs)(bool);
-    void (*PinSck)(bool);
-    void (*PinMosi)(bool);
+    void (*InitI2C)(void);
+    int8_t (*WriteI2C)(const uint8_t*, uint16_t);
 } HT1620_HAL_st;
 
 /**
      * @brief Construct a new HT1621 object
      *
      * Starts the lcd with the pin assignment declared. The backlight pin is optional
-     *  
-     * @param hal_ptr 
+     *
+     * @param hal_ptr
      */
 void HT1620Init(HT1620_HAL_st *hal_ptr);
 

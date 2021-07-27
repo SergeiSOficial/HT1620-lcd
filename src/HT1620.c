@@ -31,6 +31,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "HT1620.h"
 #include "main.h"
+#include "i2c.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -92,8 +93,8 @@ inline void LCD_TOGGLE(bool EN, uint8_t POS1, uint8_t SEG1, uint8_t POS2, uint8_
 #define WDTDIS1 0x0A //0b1000 0000 1010  Disable WDT time-out flag output
 #define CLRTMR 0x1A //0b1000 0000 1010  Disable WDT time-out flag output
 
-#define MODE_CMD 0x08
-#define MODE_DATA 0x05
+#define MODE_CMD 0x01
+#define MODE_DATA 0x00
 
 #define ADR0_SHIFT 0
 #define ADR1_SHIFT 7
@@ -168,7 +169,7 @@ inline void LCD_TOGGLE(bool EN, uint8_t POS1, uint8_t SEG1, uint8_t POS2, uint8_
 #define SN_EN_POS 16
 
 #define WARN_SEG (1 << 0)
-#define WARN_POS 17
+#define WARN_POS 8
 
 #define MAGNET_SEG (1 << 4)
 #define MAGNET_POS 16
@@ -425,6 +426,8 @@ void bufferToAscii(const char *in, uint8_t *out);
 
 void HT1620Init(HT1620_HAL_st *hal_ptr)
 {
+    assert_param(hal_ptr->InitI2C);
+    assert_param(hal_ptr->WriteI2C);
     HT1620_hal = hal_ptr;
 
     wrCmd(BIAS);
@@ -441,6 +444,22 @@ void HT1620Init(HT1620_HAL_st *hal_ptr)
 
 //    wrCmd(TONEOFF);
 //    wrCmd(LCDOFF);
+
+    HT1620_hal->InitI2C();//
+//    uint8_t buffer[32] = {0xE0};//0b1110 0000 EV=0
+//    HT1620_hal->WriteI2C(buffer, 1);
+
+    buffer[0] = 0xD8;//0b1101 1000 ULP EN
+    HT1620_hal->WriteI2C(buffer, 1);
+    buffer[0] = 0xF8;//0b1111 1000   All pixels are ON/OFF depending on the data in
+    HT1620_hal->WriteI2C(buffer, 1);
+    buffer[0] = 0xF0;//0b1111 0000   No blink.
+    HT1620_hal->WriteI2C(buffer, 1);
+
+    buffer[0] = 0xE0;//0b1110 0000 EV=0
+    HT1620_hal->WriteI2C(buffer, 1);
+    buffer[0] = 0xA0;//0b1010 0000 80Hz Normal Mode, Line inverse, *0.5, Power Save Mode 1
+    HT1620_hal->WriteI2C(buffer, 1);
 }
 
 void HT1620displayOn()
@@ -470,46 +489,8 @@ void *reverseBytes(void *inp, size_t len)
 
 void wrBytes(uint8_t *ptr, uint8_t size)
 {
-    // probably need to use microsecond delays in this method
-    // after every pin toggle function to give display
-    // driver time for data reading. But current solution works for me
-
     // TODO: check wrong size
-    // lcd driver expects data in reverse order
-    reverseBytes(ptr, size);
-
-
-
-    if (HT1620_hal->PinSck && HT1620_hal->PinMosi)
-    {
-        if (HT1620_hal->PinCs)
-        {
-            HT1620_hal->PinCs(LOW);
-        }
-        for (size_t k = 0; k < size; k++)
-        {
-            // send bits into display one by one
-            for (size_t i = 0; i < BITS_PER_BYTE; i++)
-            {
-                HT1620_hal->PinSck(LOW);
-                HT1620_hal->PinMosi((ptr[k] & (0x80 >> i)) ? HIGH : LOW);
-                volatile uint32_t wait_loop_index = ((1500 * (SystemCoreClock / (100000 * 2))) / 10);
-                while(wait_loop_index != 0)
-                {
-                    wait_loop_index--;
-                }
-                HT1620_hal->PinSck(HIGH);
-                wait_loop_index = ((1500 * (SystemCoreClock / (100000 * 2))) / 10);
-                while(wait_loop_index != 0)
-                {
-                    wait_loop_index--;
-                }
-            }
-        }
-    }
-
-    if (HT1620_hal->PinCs)
-        HT1620_hal->PinCs(HIGH);
+    HT1620_hal->WriteI2C(ptr, size);
 }
 
 void wrBuffer()
@@ -527,16 +508,14 @@ void wrCmd(uint8_t cmd)
         struct __attribute__((packed))
         {
 #if defined LITTLE_ENDIAN
-            uint16_t padding : 4;
-            uint16_t data : 8;
-            uint16_t type : 4;
+            uint16_t data : 7;
+            uint16_t type : 1;
 #elif defined BIG_ENDIAN
-            uint16_t type : 4;
-            uint16_t data : 8;
-            uint16_t padding : 4;
+            uint16_t type : 1;
+            uint16_t data : 7;
 #endif
         };
-        uint8_t arr[2];
+        uint8_t arr[1];
     } CommandSeq;
     CommandSeq.type = MODE_CMD;
     CommandSeq.data = cmd;
@@ -700,6 +679,7 @@ void HT1620printFixed(int32_t multiplied_float, uint32_t multiplier)
         precision = 2;
     else if (multiplier == 10)
         precision = 1;
+    else precision = 0;
 
     if (multiplied_float > MAX_NUM)
         multiplied_float = MAX_NUM;
