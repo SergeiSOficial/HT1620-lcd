@@ -1,4 +1,4 @@
-# HT1621 7 segment LCD library
+# HT1620 7 segment LCD library
 Library for 7-segment lcds based on the HT1621 driver. Very often marked as PDC-6X1.
 
 <img src="extras/photo1.jpg" alt="photo" width="500">
@@ -14,10 +14,10 @@ https://github.com/hedgehogV/HT1621-lcd
 
 ## APIs reference
 
-* `HT1621(pPinSet *pCs, pPinSet *pSck, pPinSet *pMosi, pPinSet *pBacklight)`
+* `HT1620(pPinSet *pCs, pPinSet *pSck, pPinSet *pMosi, pPinSet *pBacklight)`
 Ctor. Starts the lcd with the pin assignment declared. The backlight pin is optional
 
-* `HT1621(pInterface *pSpi, pPinSet *pCs, pPinSet *pBacklight)`
+* `HT1620(pInterface *pSpi, pPinSet *pCs, pPinSet *pBacklight)`
 Starts the lcd with SPI interface. CS and backlight pins are optional. Tested with CPOL=LOW, EDGE=1
 
 * `void clear()`
